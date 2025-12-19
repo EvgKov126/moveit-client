@@ -28,3 +28,12 @@ export const getNavigationByRole = (role: string) => {
     if (role === 'admin') menu.push('Admin Panel');
     return menu;
 };
+
+export const loginUser = async (credentials: any) => {
+    const response = await fetch('https://api.moveit.com/login', {
+        method: 'POST',
+        body: JSON.stringify(credentials)
+    });
+    if (!response.ok) throw new Error('Unauthorized');
+    return await response.json();
+};

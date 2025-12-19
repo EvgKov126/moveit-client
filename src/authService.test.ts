@@ -3,9 +3,11 @@ import {
     validateLoginInput,
     handleAuthSuccess,
     filterCourses,
-    getNavigationByRole
+    getNavigationByRole,
+    loginUser
 } from './authService';
 
+// UNIT-тести
 describe('UNIT-тести модуля авторизації Moveit', () => {
 
     beforeEach(() => {
@@ -30,16 +32,6 @@ describe('UNIT-тести модуля авторизації Moveit', () => {
         expect(result.isValid).toBe(true);
     });
 
-    it('Має зберігати JWT токен у localStorage при успіху', () => {
-        const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-        const token = "eyJhbGci.eyJzdWIi.signature";
-
-        const success = handleAuthSuccess(token);
-
-        expect(success).toBe(true);
-        expect(setItemSpy).toHaveBeenCalledWith('Moveit_token', token);
-    });
-
     it('Має фільтрувати курси без урахування регістру', () => {
         const courses = [{ name: 'React Basic' }, { name: 'Node.js' }, { name: 'TypeScript' }];
         const result = filterCourses(courses, 'REacT');
@@ -56,5 +48,37 @@ describe('UNIT-тести модуля авторизації Moveit', () => {
     it('Адміністратор має бачити всі пункти меню', () => {
         const menu = getNavigationByRole('admin');
         expect(menu).toEqual(['Home', 'My Courses', 'Manage Content', 'Admin Panel']);
+    });
+});
+
+// Тести Spy, Mocking
+describe('Інтеграційні тести API (Mocking)', () => {
+    it('Має зберігати JWT токен у localStorage при успіху', () => {
+        const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+        const token = "eyJhbGci.eyJzdWIi.signature";
+
+        const success = handleAuthSuccess(token);
+
+        expect(success).toBe(true);
+        expect(setItemSpy).toHaveBeenCalledWith('Moveit_token', token);
+    });
+
+    it('Має успішно отримувати токен від API при правильних даних', async () => {
+        // Mock-відповідь сервера
+        const mockResponse = { token: 'fake-jwt-token' };
+
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => mockResponse,
+        });
+        vi.stubGlobal('fetch', fetchMock);
+
+        const data = await loginUser({ email: 'test@sumdu.edu.ua', password: 'password123' });
+
+        // Перевірка заємодії з сервером
+        expect(fetchMock).toHaveBeenCalledWith('https://api.moveit.com/login', expect.any(Object));
+        expect(data.token).toBe('fake-jwt-token');
+
+        vi.unstubAllGlobals();
     });
 });
